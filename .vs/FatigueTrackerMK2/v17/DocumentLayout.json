@@ -1,0 +1,85 @@
+{
+  "Version": 1,
+  "WorkspaceRootPath": "C:\\Users\\Gleeno (The Adam)\\source\\repos\\FatigueTrackerMK2\\",
+  "Documents": [
+    {
+      "AbsoluteMoniker": "D:0:0:{591C309E-78CD-4EB2-A813-705D6C65B274}|WpfFatigueMK2\\WpfFatigueMK2.csproj|c:\\users\\gleeno (the adam)\\source\\repos\\fatiguetrackermk2\\wpffatiguemk2\\mainwindow.xaml.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{591C309E-78CD-4EB2-A813-705D6C65B274}|WpfFatigueMK2\\WpfFatigueMK2.csproj|solutionrelative:wpffatiguemk2\\mainwindow.xaml.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{591C309E-78CD-4EB2-A813-705D6C65B274}|WpfFatigueMK2\\WpfFatigueMK2.csproj|c:\\users\\gleeno (the adam)\\source\\repos\\fatiguetrackermk2\\wpffatiguemk2\\mainwindow.xaml||{F11ACC28-31D1-4C80-A34B-F4E09D3D753C}",
+      "RelativeMoniker": "D:0:0:{591C309E-78CD-4EB2-A813-705D6C65B274}|WpfFatigueMK2\\WpfFatigueMK2.csproj|solutionrelative:wpffatiguemk2\\mainwindow.xaml||{F11ACC28-31D1-4C80-A34B-F4E09D3D753C}"
+    }
+  ],
+  "DocumentGroupContainers": [
+    {
+      "Orientation": 0,
+      "VerticalTabListWidth": 256,
+      "DocumentGroups": [
+        {
+          "DockedWidth": 200,
+          "SelectedChildIndex": 6,
+          "Children": [
+            {
+              "$type": "Bookmark",
+              "Name": "ST:128:0:{116d2292-e37d-41cd-a077-ebacac4c8cc4}"
+            },
+            {
+              "$type": "Bookmark",
+              "Name": "ST:128:0:{1fc202d4-d401-403c-9834-5b218574bb67}"
+            },
+            {
+              "$type": "Bookmark",
+              "Name": "ST:129:0:{1fc202d4-d401-403c-9834-5b218574bb67}"
+            },
+            {
+              "$type": "Bookmark",
+              "Name": "ST:137:0:{1fc202d4-d401-403c-9834-5b218574bb67}"
+            },
+            {
+              "$type": "Bookmark",
+              "Name": "ST:130:0:{116d2292-e37d-41cd-a077-ebacac4c8cc4}"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 1,
+              "Title": "MainWindow.xaml",
+              "DocumentMoniker": "C:\\Users\\Gleeno (The Adam)\\source\\repos\\FatigueTrackerMK2\\WpfFatigueMK2\\MainWindow.xaml",
+              "RelativeDocumentMoniker": "WpfFatigueMK2\\MainWindow.xaml",
+              "ToolTip": "C:\\Users\\Gleeno (The Adam)\\source\\repos\\FatigueTrackerMK2\\WpfFatigueMK2\\MainWindow.xaml",
+              "RelativeToolTip": "WpfFatigueMK2\\MainWindow.xaml",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.003549|",
+              "WhenOpened": "2025-01-23T11:31:58.195Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 0,
+              "Title": "MainWindow.xaml.cs",
+              "DocumentMoniker": "C:\\Users\\Gleeno (The Adam)\\source\\repos\\FatigueTrackerMK2\\WpfFatigueMK2\\MainWindow.xaml.cs",
+              "RelativeDocumentMoniker": "WpfFatigueMK2\\MainWindow.xaml.cs",
+              "ToolTip": "C:\\Users\\Gleeno (The Adam)\\source\\repos\\FatigueTrackerMK2\\WpfFatigueMK2\\MainWindow.xaml.cs",
+              "RelativeToolTip": "WpfFatigueMK2\\MainWindow.xaml.cs",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2025-01-23T11:31:46.571Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Bookmark",
+              "Name": "ST:0:0:{34e76e81-ee4a-11d0-ae2e-00a0c90fffc3}"
+            },
+            {
+              "$type": "Bookmark",
+              "Name": "ST:1:0:{d212f56b-c48a-434c-a121-1c5d80b59b9f}"
+            },
+            {
+              "$type": "Bookmark",
+              "Name": "ST:0:0:{d78612c7-9962-4b83-95d9-268046dad23a}"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
