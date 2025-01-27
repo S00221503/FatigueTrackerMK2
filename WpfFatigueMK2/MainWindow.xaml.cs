@@ -18,7 +18,7 @@ namespace WpfFatigueMK2
     /// </summary>
     public partial class MainWindow : Window
     {
-        private static readonly Logger Logger = LogManager.GetCurrentClassLogger();
+        private static readonly Logger Logger = LogManager.GetCurrentClassLogger(); //Use this for logging
         private SerialPort _serialPort;
 
         public MainWindow()
