@@ -13,13 +13,17 @@ using System.Windows.Shapes;
 
 namespace WpfFatigueMK2
 {
-    /// <summary>
-    /// Interaction logic for MainWindow.xaml
-    /// </summary>
     public partial class MainWindow : Window
     {
-        private static readonly Logger Logger = LogManager.GetCurrentClassLogger(); //Use this for logging
+        private static readonly Logger Logger = LogManager.GetCurrentClassLogger();
         private SerialPort _serialPort;
+        private Queue<int> _stepCounts = new Queue<int>(); // Queue to store step counts for 10-second intervals
+        private DateTime _lastUpdate = DateTime.Now; // Tracks the last update time
+        private const int MaxSteps = 200; // Maximum steps for 100% progress (adjust based on expected steps)
+        private bool _initialized = false; // Flag to track if 3 intervals have passed
+        private int _initialAverageSteps = 0; // Stores the initial average after 3 intervals
+        private int _rollingAverageSteps = 0; // Stores the rolling average for subsequent intervals
+        private int _rollingCount = 0; // Tracks the number of intervals added to the rolling average
 
         public MainWindow()
         {
@@ -32,22 +36,20 @@ namespace WpfFatigueMK2
         {
             try
             {
-                // Configure and open the serial port
-                _serialPort = new SerialPort("COM5", 9600)
+                _serialPort = new SerialPort("COM8", 9600)
                 {
-                    DtrEnable = true, // Enable Data Terminal Ready to reset Arduino
-                    RtsEnable = true, // Enable Request to Send
-                    ReadTimeout = 2000, // Set timeout for reading
-                    WriteTimeout = 500  // Set timeout for writing
+                    DtrEnable = true,
+                    RtsEnable = true,
+                    ReadTimeout = 2000,
+                    WriteTimeout = 500
                 };
 
                 _serialPort.DataReceived += SerialPort_DataReceived;
                 _serialPort.Open();
 
-                // Wait for the Arduino to initialize
                 Console.WriteLine("Serial port opened. Waiting for Arduino to initialize...");
-                System.Threading.Thread.Sleep(2000); // Wait 2 seconds for Arduino reset
-                _serialPort.DiscardInBuffer(); // Clear any leftover data in the buffer
+                System.Threading.Thread.Sleep(2000);
+                _serialPort.DiscardInBuffer();
 
                 MessageBox.Show("Connected to Arduino successfully!");
             }
@@ -61,18 +63,16 @@ namespace WpfFatigueMK2
         {
             try
             {
-                // Read incoming data
                 string data = _serialPort.ReadLine();
                 Console.WriteLine($"Raw data received: {data}");
 
-                // Parse and update the UI only if the data is in the expected format
                 if (data.StartsWith("Steps in last 5 seconds:"))
                 {
-                    string stepCount = data.Replace("Steps in last 5 seconds:", "").Trim();
-                    Dispatcher.Invoke(() =>
+                    string stepCountStr = data.Replace("Steps in last 5 seconds:", "").Trim();
+                    if (int.TryParse(stepCountStr, out int stepCount))
                     {
-                        StepCountTextBlock.Text = $"Steps in last 5 seconds: {stepCount}";
-                    });
+                        UpdateFatigueLevel(stepCount);
+                    }
                 }
                 else
                 {
@@ -87,30 +87,94 @@ namespace WpfFatigueMK2
             {
                 Console.WriteLine($"Error reading serial data: {ex.Message}");
             }
-
         }
 
-        private void SaveStepData(string stepCount)
+        private void UpdateFatigueLevel(int stepCount)
         {
-            // Example: Write step count to a text file
-            string filePath = "StepData.txt";
+            if (!_initialized)
+            {
+                // Add the current step count to the queue
+                _stepCounts.Enqueue(stepCount);
+                _lastUpdate = DateTime.Now;
 
-            // Append step data with a timestamp
-            string entry = $"{DateTime.Now}: {stepCount} steps\n";
-            System.IO.File.AppendAllText(filePath, entry);
+                // Keep only the last 3 intervals (30 seconds of data)
+                if (_stepCounts.Count > 3)
+                {
+                    _stepCounts.Dequeue();
+                }
 
-            // Log success
-            Console.WriteLine($"Step data saved: {entry}");
+                // After 3 intervals, calculate the initial average
+                if (_stepCounts.Count == 3)
+                {
+                    _initialized = true; // Mark as initialized after 3 intervals
+                    _initialAverageSteps = CalculateAverageSteps();
+
+                    // Set the rolling average to the initial average
+                    _rollingAverageSteps = _initialAverageSteps;
+
+                    // Normalize initial average steps to a percentage (0% to 100%)
+                    int progressValue = (int)((double)_initialAverageSteps / MaxSteps * 100);
+                    progressValue = Math.Min(progressValue, 100); // Ensure it doesn't exceed 100%
+
+                    Dispatcher.Invoke(() =>
+                    {
+                        // Update ProgressBar value
+                        FatigueProgressBar.Value = progressValue;
+
+                        // Update Fatigue Level Text
+                        UpdateFatigueLevelText(progressValue);
+                    });
+                }
+            }
+            else
+            {
+                // Add the new step count to the rolling average
+                _rollingCount++;
+                _rollingAverageSteps = (_rollingAverageSteps * (_rollingCount - 1) + stepCount) / _rollingCount;
+
+                // Compare the rolling average to the initial average
+                int comparisonValue = (int)((double)_rollingAverageSteps / _initialAverageSteps * 100);
+                comparisonValue = Math.Min(comparisonValue, 100); // Ensure it doesn't exceed 100%
+
+                Dispatcher.Invoke(() =>
+                {
+                    // Update ProgressBar value
+                    FatigueProgressBar.Value = comparisonValue;
+
+                    // Update Fatigue Level Text
+                    UpdateFatigueLevelText(comparisonValue);
+                });
+            }
         }
 
-        private void TestButton_Click(object sender, RoutedEventArgs e)
+        private int CalculateAverageSteps()
         {
-            // Simulate updating the TextBlock with step data
-            Random random = new Random();
-            int simulatedStepCount = random.Next(0, 100); // Generate a random step count
+            int sum = 0;
+            foreach (int steps in _stepCounts)
+            {
+                sum += steps;
+            }
+            return sum / _stepCounts.Count;
+        }
 
-            // Update the TextBlock
-            StepCountTextBlock.Text = $"Steps: {simulatedStepCount}";
+        private void UpdateFatigueLevelText(int progressValue)
+        {
+            if (progressValue <= 25)
+            {
+                FatigueLevelText.Text = "Fatigue Level: Critical (Player should be subbed)";
+                if (_initialized) // Show MessageBox only after 3 intervals
+                {
+                    MessageBox.Show("Player should be subbed!", "Fatigue Alert", MessageBoxButton.OK, MessageBoxImage.Warning);
+                }
+            }
+            else if (progressValue <= 50)
+            {
+                FatigueLevelText.Text = "Fatigue Level: Tired (Player is beginning to get tired)";
+            }
+            else
+            {
+                FatigueLevelText.Text = "Fatigue Level: Normal (Player is fine)";
+            }
         }
 
         private void Window_Closing(object sender, System.ComponentModel.CancelEventArgs e)
@@ -121,6 +185,6 @@ namespace WpfFatigueMK2
                 Console.WriteLine("Serial port closed.");
             }
         }
-
     }
 }
+
