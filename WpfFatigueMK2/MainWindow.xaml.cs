@@ -22,14 +22,28 @@ namespace WpfFatigueMK2
         private const int MaxSteps = 200; // Maximum steps for 100% progress (adjust based on expected steps)
         private bool _initialized = false; // Flag to track if 3 intervals have passed
         private int _initialAverageSteps = 0; // Stores the initial average after 3 intervals
-        private int _rollingAverageSteps = 0; // Stores the rolling average for subsequent intervals
-        private int _rollingCount = 0; // Tracks the number of intervals added to the rolling average
 
         public MainWindow()
         {
             InitializeComponent();
             Logger.Info("Application started.");
             InitializeSerialPort();
+        }
+
+        //Button for opening new window
+        private void PlayerButton_Click(object sender, RoutedEventArgs e)
+        {
+            // Calculate the average steps using the existing method
+            int averageSteps = CalculateAverageSteps();
+
+            // Create an instance of the new window
+            PlayerDetailsWindow playerDetailsWindow = new PlayerDetailsWindow();
+
+            // Pass the average steps to the new window
+            playerDetailsWindow.AverageSteps = averageSteps;
+
+            // Show the new window
+            playerDetailsWindow.ShowDialog();
         }
 
         private void InitializeSerialPort()
@@ -109,40 +123,27 @@ namespace WpfFatigueMK2
                     _initialized = true; // Mark as initialized after 3 intervals
                     _initialAverageSteps = CalculateAverageSteps();
 
-                    // Set the rolling average to the initial average
-                    _rollingAverageSteps = _initialAverageSteps;
-
-                    // Normalize initial average steps to a percentage (0% to 100%)
-                    int progressValue = (int)((double)_initialAverageSteps / MaxSteps * 100);
-                    progressValue = Math.Min(progressValue, 100); // Ensure it doesn't exceed 100%
-
+                    // Set the progress bar to 100% (full) based on the initial average
                     Dispatcher.Invoke(() =>
                     {
-                        // Update ProgressBar value
-                        FatigueProgressBar.Value = progressValue;
-
-                        // Update Fatigue Level Text
-                        UpdateFatigueLevelText(progressValue);
+                        FatigueProgressBar.Value = 100; // Set to 100%
+                        FatigueLevelText.Text = "Fatigue Level: Normal (Player is fine)";
                     });
                 }
             }
             else
             {
-                // Add the new step count to the rolling average
-                _rollingCount++;
-                _rollingAverageSteps = (_rollingAverageSteps * (_rollingCount - 1) + stepCount) / _rollingCount;
-
-                // Compare the rolling average to the initial average
-                int comparisonValue = (int)((double)_rollingAverageSteps / _initialAverageSteps * 100);
-                comparisonValue = Math.Min(comparisonValue, 100); // Ensure it doesn't exceed 100%
+                // Compare the new step count to the initial average
+                double percentage = ((double)stepCount / _initialAverageSteps) * 100;
+                percentage = Math.Min(percentage, 100); // Ensure it doesn't exceed 100%
 
                 Dispatcher.Invoke(() =>
                 {
                     // Update ProgressBar value
-                    FatigueProgressBar.Value = comparisonValue;
+                    FatigueProgressBar.Value = percentage;
 
                     // Update Fatigue Level Text
-                    UpdateFatigueLevelText(comparisonValue);
+                    UpdateFatigueLevelText(percentage);
                 });
             }
         }
@@ -157,17 +158,14 @@ namespace WpfFatigueMK2
             return sum / _stepCounts.Count;
         }
 
-        private void UpdateFatigueLevelText(int progressValue)
+        private void UpdateFatigueLevelText(double percentage)
         {
-            if (progressValue <= 25)
+            if (percentage <= 25)
             {
                 FatigueLevelText.Text = "Fatigue Level: Critical (Player should be subbed)";
-                if (_initialized) // Show MessageBox only after 3 intervals
-                {
-                    MessageBox.Show("Player should be subbed!", "Fatigue Alert", MessageBoxButton.OK, MessageBoxImage.Warning);
-                }
+                MessageBox.Show("Player should be subbed!", "Fatigue Alert", MessageBoxButton.OK, MessageBoxImage.Warning);
             }
-            else if (progressValue <= 50)
+            else if (percentage <= 50)
             {
                 FatigueLevelText.Text = "Fatigue Level: Tired (Player is beginning to get tired)";
             }
