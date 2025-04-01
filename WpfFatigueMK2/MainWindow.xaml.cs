@@ -35,6 +35,7 @@ namespace WpfFatigueMK2
             LoadWeather();
 
             _ = InitDatabaseAndPlayer(); //No need to run once table and players were added.
+            _ = LoadSubstitutesListAsync();
         }
 
         //No need to run now that tables and players have been made.
@@ -58,7 +59,21 @@ namespace WpfFatigueMK2
     }
 }
 
+        private async Task LoadSubstitutesListAsync()
+        {
+            try
+            {
+                string selectedTeam = "Claremorris"; // hardcoded team name
 
+                var players = await _dbHelper.GetPlayersByTeamAsync(selectedTeam);
+                SubstitutesListBox.ItemsSource = players;
+            }
+            catch (Exception ex)
+            {
+                Logger.Error(ex, "Failed to load substitutes list.");
+                MessageBox.Show("Failed to load players: " + ex.Message);
+            }
+        }
 
         private async void LoadWeather()
         {
@@ -224,8 +239,40 @@ namespace WpfFatigueMK2
             }
         }
 
-        private void Window_Closing(object sender, System.ComponentModel.CancelEventArgs e)
+        private async Task SaveSessionToDatabase()
         {
+            try
+            {
+                if (_stepCounts.Count == 0)
+                {
+                    Logger.Info("No step data to save.");
+                    return;
+                }
+
+                int avgSteps = CalculateAverageSteps(); // You must calculate this first
+                int playerId = 4;  //Hardcoded values for now
+                string position = "7"; //Hardcoded position for now
+
+                // Show this before inserting into the database
+                MessageBox.Show($"Saving match for PlayerID={playerId}, Position={position}, AvgSteps={avgSteps}");
+
+                await _dbHelper.AddMatchAsync(playerId, position, avgSteps);
+                Logger.Info($"Match saved: PlayerID={playerId}, Position={position}, AvgSteps={avgSteps}");
+                await _dbHelper.UpdatePlayerAverageStepsAsync(playerId);
+            }
+            catch (Exception ex)
+            {
+                Logger.Error(ex, "Failed to save match data.");
+                MessageBox.Show("Failed to save match: " + ex.Message);
+            }
+        }
+
+        private async void Window_Closing(object sender, System.ComponentModel.CancelEventArgs e)
+        {
+
+            await SaveSessionToDatabase();
+
+
             if (_serialPort != null && _serialPort.IsOpen)
             {
                 _serialPort.Close();

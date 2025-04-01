@@ -5,7 +5,8 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:WpfFatigueMK2"
         mc:Ignorable="d"
-        Title="MainWindow" Height="450" Width="800">
+        Title="MainWindow" Height="450" Width="800"
+        Closing="Window_Closing">
     <Border BorderBrush="Black" BorderThickness="20,20,0,0">
         <Grid>
             <Grid.ColumnDefinitions>
@@ -43,17 +44,12 @@
             <!-- Substitutes ListBox with Label (Left) -->
             <StackPanel Grid.Column="0" Grid.Row="1" Margin="10">
                 <TextBlock Text="Substitutes" 
-                       FontSize="14" 
-                       FontWeight="Bold" 
-                       Margin="0,0,0,5" />
-                <ListBox Width="150" Height="200">
-                    <ListBoxItem>Duffy 16</ListBoxItem>
-                    <ListBoxItem>Fitzgerald 17</ListBoxItem>
-                    <ListBoxItem>Darling 18</ListBoxItem>
-                    <ListBoxItem>Kayser 19</ListBoxItem>
-                    <ListBoxItem>Samoska 20</ListBoxItem>
-                </ListBox>
+               FontSize="14" 
+               FontWeight="Bold" 
+               Margin="0,0,0,5" />
+                <ListBox x:Name="SubstitutesListBox" Width="150" Height="200" />
             </StackPanel>
+
 
             <!-- Player Information (Center) -->
             <StackPanel Grid.Column="1" Grid.Row="1" 

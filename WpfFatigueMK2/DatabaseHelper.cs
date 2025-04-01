@@ -12,7 +12,6 @@ public class DatabaseHelper
         _connectionString = connectionString;
     }
 
-    /*
     public async Task InitializeDatabaseAsync()
     {
         using var connection = new SqlConnection(_connectionString);
@@ -41,7 +40,6 @@ public class DatabaseHelper
         using var cmd2 = new SqlCommand(createPlayers, connection);
         await cmd2.ExecuteNonQueryAsync();
     }
-    */
 
     public async Task CreateMatchesTableAsync()
     {
@@ -63,6 +61,56 @@ public class DatabaseHelper
         await cmd.ExecuteNonQueryAsync();
     }
 
+    public async Task<List<string>> GetPlayersByTeamAsync(string teamName)
+    {
+        var players = new List<string>();
+
+        using var connection = new SqlConnection(_connectionString);
+        await connection.OpenAsync();
+
+        string query = @"
+        SELECT P.Name
+        FROM Players P
+        JOIN Teams T ON P.TeamID = T.TeamID
+        WHERE T.TeamName = @TeamName";
+
+        using var cmd = new SqlCommand(query, connection);
+        cmd.Parameters.AddWithValue("@TeamName", teamName);
+
+        using var reader = await cmd.ExecuteReaderAsync();
+        while (await reader.ReadAsync())
+        {
+            players.Add(reader.GetString(0));
+        }
+
+        return players;
+    }
+
+
+
+    //Everytime a game is played this will update the players average steps in the game
+    public async Task UpdatePlayerAverageStepsAsync(int playerId)
+    {
+        using var connection = new SqlConnection(_connectionString);
+        await connection.OpenAsync();
+
+        string avgQuery = @"SELECT AVG(AvgSteps) FROM Matches WHERE PlayerID = @PlayerID";
+        using var avgCmd = new SqlCommand(avgQuery, connection);
+        avgCmd.Parameters.AddWithValue("@PlayerID", playerId);
+
+        object result = await avgCmd.ExecuteScalarAsync();
+        if (result != DBNull.Value)
+        {
+            double newAvg = Convert.ToDouble(result);
+
+            string updatePlayer = @"UPDATE Players SET AvgStepsPerGame = @Avg WHERE PlayerID = @PlayerID";
+            using var updateCmd = new SqlCommand(updatePlayer, connection);
+            updateCmd.Parameters.AddWithValue("@Avg", newAvg);
+            updateCmd.Parameters.AddWithValue("@PlayerID", playerId);
+
+            await updateCmd.ExecuteNonQueryAsync();
+        }
+    }
 
 
     public async Task AddMatchAsync(int playerId, string position, double avgSteps)
