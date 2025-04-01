@@ -28,6 +28,27 @@ namespace WpfFatigueMK2
             InitializeComponent();
             Logger.Info("Application started.");
             InitializeSerialPort();
+            LoadWeather();
+        }
+
+
+        private async void LoadWeather()
+        {
+            var weather = await WeatherService.GetForecastAsync("Dublin,IE");
+
+            if (weather != null && weather.list != null && weather.list.Count > 0)
+            {
+                var first = weather.list[0];
+                string condition = first.weather[0].main;
+                string description = first.weather[0].description;
+                double temp = first.main.temp;
+
+                WeatherConditionTextBox.Text = $"{condition} ({description}), {temp}°C";
+            }
+            else
+            {
+                WeatherConditionTextBox.Text = "N/A";
+            }
         }
 
         //Button for opening new window
@@ -50,7 +71,7 @@ namespace WpfFatigueMK2
         {
             try
             {
-                _serialPort = new SerialPort("COM8", 9600)
+                _serialPort = new SerialPort("COM5", 9600)
                 {
                     DtrEnable = true,
                     RtsEnable = true,

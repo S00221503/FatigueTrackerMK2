@@ -26,16 +26,19 @@
             </Grid.RowDefinitions>
 
             <!-- Weather Conditions TextBox (Top-Right) -->
-            <TextBox Grid.Column="2" 
-                 HorizontalAlignment="Right" 
-                 VerticalAlignment="Top" 
-                 Margin="10" 
-                 Width="150" 
-                 Text="Sunny" 
-                 IsReadOnly="True" 
-                 TextAlignment="Center" 
-                 Background="Transparent" 
-                 BorderThickness="0" />
+            <TextBox x:Name="WeatherConditionTextBox"
+         Grid.Column="2"
+         HorizontalAlignment="Right"
+         VerticalAlignment="Top"
+         Margin="10"
+         Width="180"
+         Text="Loading..."
+         IsReadOnly="True"
+         TextAlignment="Center"
+         Background="Transparent"
+         BorderThickness="0" />
+
+
 
             <!-- Substitutes ListBox with Label (Left) -->
             <StackPanel Grid.Column="0" Grid.Row="1" Margin="10">
