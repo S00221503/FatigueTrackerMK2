@@ -22,14 +22,42 @@ namespace WpfFatigueMK2
         private const int MaxSteps = 200; // Maximum steps for 100% progress (adjust based on expected steps)
         private bool _initialized = false; // Flag to track if 3 intervals have passed
         private int _initialAverageSteps = 0; // Stores the initial average after 3 intervals
+        private DatabaseHelper _dbHelper;
+
 
         public MainWindow()
         {
             InitializeComponent();
             Logger.Info("Application started.");
+            string connStr = "Server=tcp:myplayerserver.database.windows.net,1433;Initial Catalog=PlayerTracker;Persist Security Info=False;User ID=AdamGleeson;Password=Tyrone19;MultipleActiveResultSets=False;Encrypt=True;TrustServerCertificate=False;Connection Timeout=30;";
+            _dbHelper = new DatabaseHelper(connStr);
             InitializeSerialPort();
             LoadWeather();
+
+            _ = InitDatabaseAndPlayer(); //No need to run once table and players were added.
         }
+
+        //No need to run now that tables and players have been made.
+        private async Task InitDatabaseAndPlayer()
+{
+    try
+    {
+        Logger.Info("Connecting to DB...");
+        //await _dbHelper.InitializeDatabaseAsync(); // Creates Teams and Players tables
+        await _dbHelper.CreateMatchesTableAsync(); // Creates Matches table
+        Logger.Info("All tables ready");
+
+        // Optional: Only if needed
+        // await _dbHelper.AddTeamAsync("Claremorris");
+        // await _dbHelper.AddPlayerAsync(1, "Adam Gleeson", 5200);
+    }
+    catch (Exception ex)
+    {
+        Logger.Error(ex, "DB setup failed");
+        MessageBox.Show("Database error: " + ex.Message);
+    }
+}
+
 
 
         private async void LoadWeather()
