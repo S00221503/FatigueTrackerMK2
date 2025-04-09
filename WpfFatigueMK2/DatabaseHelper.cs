@@ -156,6 +156,42 @@ public class DatabaseHelper
         await cmd.ExecuteNonQueryAsync();
     }
 
+    public async Task<int> GetAverageStepsForPlayerAsync(int playerId)
+    {
+        const string query = "SELECT AvgStepsPerGame FROM Players WHERE PlayerID = @PlayerID";
+
+        using var connection = new SqlConnection(_connectionString);
+        using var command = new SqlCommand(query, connection);
+        command.Parameters.AddWithValue("@PlayerID", playerId);
+
+        await connection.OpenAsync();
+        var result = await command.ExecuteScalarAsync();
+
+        if (result != null && int.TryParse(result.ToString(), out int avgSteps))
+        {
+            return avgSteps;
+        }
+
+        return 0; // fallback if no value found
+    }
+
+
+
+    public async Task<int> GetPlayerIdByNameAsync(string name)
+    {
+        using var connection = new SqlConnection(_connectionString);
+        await connection.OpenAsync();
+
+        var query = "SELECT PlayerID FROM Players WHERE Name = @Name";
+        using var cmd = new SqlCommand(query, connection);
+        cmd.Parameters.AddWithValue("@Name", name);
+
+        var result = await cmd.ExecuteScalarAsync();
+        return result != null ? Convert.ToInt32(result) : -1;
+    }
+
+
+
     public async Task<List<(string Name, double AvgStepsPerGame)>> GetPlayersByTeamAsync(int teamId)
     {
         var players = new List<(string, double)>();

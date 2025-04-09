@@ -1,30 +1,21 @@
 ﻿<Window x:Class="WpfFatigueMK2.PlayerDetailsWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
-        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-        xmlns:local="clr-namespace:WpfFatigueMK2"
-        mc:Ignorable="d"
-        Title="PlayerDetailsWindow" Height="450" Width="800">
-    <Grid>
-        <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">
-            <!-- Display Player Name -->
-            <TextBlock Text="Player: Adam Gleeson" 
-                       FontSize="16" 
-                       FontWeight="Bold" 
-                       Margin="0,0,0,10" />
+        Title="Player Details" Height="200" Width="400">
+    <Grid Margin="20">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
 
-            <!-- Display Player Number -->
-            <TextBlock Text="Player Number: 1" 
-                       FontSize="16" 
-                       FontWeight="Bold" 
-                       Margin="0,0,0,10" />
+        <TextBlock Text="Player Name:" FontWeight="Bold"/>
+        <TextBlock x:Name="PlayerNameTextBlock" Grid.Row="0" Margin="120,0,0,0"/>
 
-            <!-- Display Average Steps -->
-            <TextBlock Text="{Binding AverageSteps, StringFormat='Average Steps: {0}'}" 
-                       FontSize="16" 
-                       FontWeight="Bold" 
-                       Margin="0,0,0,10" />
-        </StackPanel>
+        <TextBlock Text="Player Number:" Grid.Row="1" FontWeight="Bold"/>
+        <TextBlock x:Name="PlayerSlotTextBlock" Grid.Row="1" Margin="120,0,0,0"/>
+
+        <TextBlock Text="Average Steps/Game:" Grid.Row="2" FontWeight="Bold"/>
+        <TextBlock x:Name="PlayerAvgStepsTextBlock" Grid.Row="2" Margin="120,0,0,0"/>
     </Grid>
 </Window>

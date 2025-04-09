@@ -1,33 +1,28 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
+﻿using System.Windows;
 using System.Threading.Tasks;
-using System.Windows;
-using System.Windows.Controls;
-using System.Windows.Data;
-using System.Windows.Documents;
-using System.Windows.Input;
-using System.Windows.Media;
-using System.Windows.Media.Imaging;
-using System.Windows.Shapes;
 
 namespace WpfFatigueMK2
 {
-    /// <summary>
-    /// Interaction logic for PlayerDetailsWindow.xaml
-    /// </summary>
     public partial class PlayerDetailsWindow : Window
     {
-        // Property to hold the average steps
-        public int AverageSteps { get; set; }
+        private readonly DatabaseHelper _dbHelper;
 
-        public PlayerDetailsWindow()
+        public PlayerDetailsWindow(string playerName, int slotNumber, DatabaseHelper dbHelper)
         {
             InitializeComponent();
+            _dbHelper = dbHelper;
+            LoadPlayerDetails(playerName, slotNumber);
+        }
 
-            // Set the data context to this window
-            DataContext = this;
+        private async void LoadPlayerDetails(string playerName, int slotNumber)
+        {
+            PlayerNameTextBlock.Text = playerName;
+            PlayerSlotTextBlock.Text = slotNumber.ToString();
+
+            int playerId = await _dbHelper.GetPlayerIdByNameAsync(playerName);
+            int avgSteps = await _dbHelper.GetAverageStepsForPlayerAsync(playerId);
+
+            PlayerAvgStepsTextBlock.Text = avgSteps.ToString();
         }
     }
 }

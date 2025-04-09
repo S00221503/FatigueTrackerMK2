@@ -1,15 +1,18 @@
-﻿using NLog;
+﻿using Microsoft.Data.SqlClient;
+using NLog;
+using System;
+using System.Collections.Generic;
 using System.IO.Ports;
+using System.Linq;
 using System.Text;
+using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
-using System.Windows.Data;
-using System.Windows.Documents;
 using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
-using System.Windows.Navigation;
-using System.Windows.Shapes;
+using System.Collections.ObjectModel;
+
 
 namespace WpfFatigueMK2
 {
@@ -17,12 +20,19 @@ namespace WpfFatigueMK2
     {
         private static readonly Logger Logger = LogManager.GetCurrentClassLogger();
         private SerialPort _serialPort;
-        private Queue<int> _stepCounts = new Queue<int>(); // Queue to store step counts for 10-second intervals
-        private DateTime _lastUpdate = DateTime.Now; // Tracks the last update time
-        private const int MaxSteps = 200; // Maximum steps for 100% progress (adjust based on expected steps)
-        private bool _initialized = false; // Flag to track if 3 intervals have passed
-        private int _initialAverageSteps = 0; // Stores the initial average after 3 intervals
+        private Queue<int> _stepCounts = new();
+        private DateTime _lastUpdate = DateTime.Now;
+        private const int MaxSteps = 200;
+        private bool _initialized = false;
+        private int _initialAverageSteps = 0;
         private DatabaseHelper _dbHelper;
+        private bool _matchStarted = false;
+
+
+        private List<PlayerSlot> _playerSlots = new();
+        private Dictionary<int, string> _assignedPlayers = new();
+        private int _trackedPlayerSlot = 1; // Arduino tracks slot 1
+        private ObservableCollection<string> _substitutePlayers = new();
 
 
         public MainWindow()
@@ -34,39 +44,19 @@ namespace WpfFatigueMK2
             InitializeSerialPort();
             LoadWeather();
 
-            _ = InitDatabaseAndPlayer(); //No need to run once table and players were added.
             _ = LoadSubstitutesListAsync();
+            InitializeJerseyGrid();
+
+            SubstitutesListBox.MouseDoubleClick += SubstitutesListBox_MouseDoubleClick;
         }
-
-        //No need to run now that tables and players have been made.
-        private async Task InitDatabaseAndPlayer()
-{
-    try
-    {
-        Logger.Info("Connecting to DB...");
-        //await _dbHelper.InitializeDatabaseAsync(); // Creates Teams and Players tables
-        await _dbHelper.CreateMatchesTableAsync(); // Creates Matches table
-        Logger.Info("All tables ready");
-
-        // Optional: Only if needed
-        // await _dbHelper.AddTeamAsync("Claremorris");
-        // await _dbHelper.AddPlayerAsync(1, "Adam Gleeson", 5200);
-    }
-    catch (Exception ex)
-    {
-        Logger.Error(ex, "DB setup failed");
-        MessageBox.Show("Database error: " + ex.Message);
-    }
-}
 
         private async Task LoadSubstitutesListAsync()
         {
             try
             {
-                string selectedTeam = "Claremorris"; // hardcoded team name
-
-                var players = await _dbHelper.GetPlayersByTeamAsync(selectedTeam);
-                SubstitutesListBox.ItemsSource = players;
+                var players = await _dbHelper.GetPlayersByTeamAsync("Claremorris");
+                _substitutePlayers = new ObservableCollection<string>(players);
+                SubstitutesListBox.ItemsSource = _substitutePlayers;
             }
             catch (Exception ex)
             {
@@ -74,6 +64,113 @@ namespace WpfFatigueMK2
                 MessageBox.Show("Failed to load players: " + ex.Message);
             }
         }
+
+
+        private void InitializeJerseyGrid()
+        {
+            for (int i = 1; i <= 15; i++)
+            {
+                var stack = new StackPanel { Orientation = Orientation.Vertical };
+
+                // Jersey number
+                stack.Children.Add(new TextBlock
+                {
+                    Text = i.ToString(),
+                    FontWeight = FontWeights.Bold,
+                    HorizontalAlignment = HorizontalAlignment.Center,
+                    Margin = new Thickness(0, 0, 0, 5)
+                });
+
+                // Jersey image
+                stack.Children.Add(new Image
+                {
+                    Source = new BitmapImage(new Uri("pack://application:,,,/Images/jersey.jpg")),
+                    Width = 80,
+                    Height = 80
+                });
+
+                var btn = new Button
+                {
+                    Width = 100,
+                    Height = 120,
+                    Margin = new Thickness(5),
+                    Background = Brushes.Transparent,
+                    BorderThickness = new Thickness(0),
+                    Tag = i,
+                    Content = stack
+                };
+
+                PlayerGrid.Children.Add(btn);
+
+                _playerSlots.Add(new PlayerSlot
+                {
+                    SlotNumber = i,
+                    PlayerName = null,
+                    JerseyButton = btn,
+                    StackPanel = stack // ✅ Store this for later access
+                });
+                btn.MouseDoubleClick += JerseyButton_MouseDoubleClick;
+            }
+        }
+
+        private void JerseyButton_MouseDoubleClick(object sender, MouseButtonEventArgs e)
+        {
+            if (sender is Button button && button.Tag is int slotNumber)
+            {
+                var playerSlot = _playerSlots.FirstOrDefault(s => s.SlotNumber == slotNumber);
+                if (playerSlot != null && !string.IsNullOrEmpty(playerSlot.PlayerName))
+                {
+                    var detailsWindow = new PlayerDetailsWindow(playerSlot.PlayerName, slotNumber, _dbHelper);
+                    detailsWindow.ShowDialog();
+                }
+                else
+                {
+                    MessageBox.Show("No player assigned to this slot.", "Info", MessageBoxButton.OK, MessageBoxImage.Information);
+                }
+            }
+        }
+
+
+
+
+        private void StartMatchButton_Click(object sender, RoutedEventArgs e)
+        {
+            _matchStarted = true;
+            StartMatchButton.IsEnabled = false; // optional: disable the button after clicking
+            MessageBox.Show("Match started! Fatigue tracking is now active.");
+        }
+
+
+
+
+        private void SubstitutesListBox_MouseDoubleClick(object sender, MouseButtonEventArgs e)
+        {
+            if (SubstitutesListBox.SelectedItem is string playerName)
+            {
+                var emptySlot = _playerSlots.FirstOrDefault(s => string.IsNullOrEmpty(s.PlayerName));
+                if (emptySlot != null)
+                {
+                    emptySlot.PlayerName = playerName;
+                    _assignedPlayers[emptySlot.SlotNumber] = playerName;
+
+                    // Add name to jersey UI
+                    emptySlot.StackPanel.Children.Add(new TextBlock
+                    {
+                        Text = playerName,
+                        FontSize = 10,
+                        TextWrapping = TextWrapping.Wrap,
+                        HorizontalAlignment = HorizontalAlignment.Center
+                    });
+
+                    // ✅ Remove from the ObservableCollection, NOT from Items directly
+                    _substitutePlayers.Remove(playerName);
+
+                    MessageBox.Show($"{playerName} assigned to position {emptySlot.SlotNumber}");
+                }
+            }
+        }
+
+
 
         private async void LoadWeather()
         {
@@ -94,22 +191,6 @@ namespace WpfFatigueMK2
             }
         }
 
-        //Button for opening new window
-        private void PlayerButton_Click(object sender, RoutedEventArgs e)
-        {
-            // Calculate the average steps using the existing method
-            int averageSteps = CalculateAverageSteps();
-
-            // Create an instance of the new window
-            PlayerDetailsWindow playerDetailsWindow = new PlayerDetailsWindow();
-
-            // Pass the average steps to the new window
-            playerDetailsWindow.AverageSteps = averageSteps;
-
-            // Show the new window
-            playerDetailsWindow.ShowDialog();
-        }
-
         private void InitializeSerialPort()
         {
             try
@@ -124,8 +205,6 @@ namespace WpfFatigueMK2
 
                 _serialPort.DataReceived += SerialPort_DataReceived;
                 _serialPort.Open();
-
-                Console.WriteLine("Serial port opened. Waiting for Arduino to initialize...");
                 System.Threading.Thread.Sleep(2000);
                 _serialPort.DiscardInBuffer();
 
@@ -139,11 +218,11 @@ namespace WpfFatigueMK2
 
         private void SerialPort_DataReceived(object sender, SerialDataReceivedEventArgs e)
         {
+            if (!_matchStarted) return; // 🔒 Prevent tracking before match starts
+
             try
             {
                 string data = _serialPort.ReadLine();
-                Console.WriteLine($"Raw data received: {data}");
-
                 if (data.StartsWith("Steps in last 5 seconds:"))
                 {
                     string stepCountStr = data.Replace("Steps in last 5 seconds:", "").Trim();
@@ -152,14 +231,10 @@ namespace WpfFatigueMK2
                         UpdateFatigueLevel(stepCount);
                     }
                 }
-                else
-                {
-                    Console.WriteLine($"Unexpected data format: {data}");
-                }
             }
             catch (TimeoutException)
             {
-                Console.WriteLine("No data received (timeout).");
+                Console.WriteLine("Timeout.");
             }
             catch (Exception ex)
             {
@@ -167,46 +242,37 @@ namespace WpfFatigueMK2
             }
         }
 
+
         private void UpdateFatigueLevel(int stepCount)
         {
             if (!_initialized)
             {
-                // Add the current step count to the queue
                 _stepCounts.Enqueue(stepCount);
                 _lastUpdate = DateTime.Now;
 
-                // Keep only the last 3 intervals (30 seconds of data)
                 if (_stepCounts.Count > 3)
-                {
                     _stepCounts.Dequeue();
-                }
 
-                // After 3 intervals, calculate the initial average
                 if (_stepCounts.Count == 3)
                 {
-                    _initialized = true; // Mark as initialized after 3 intervals
+                    _initialized = true;
                     _initialAverageSteps = CalculateAverageSteps();
 
-                    // Set the progress bar to 100% (full) based on the initial average
                     Dispatcher.Invoke(() =>
                     {
-                        FatigueProgressBar.Value = 100; // Set to 100%
+                        FatigueProgressBar.Value = 100;
                         FatigueLevelText.Text = "Fatigue Level: Normal (Player is fine)";
                     });
                 }
             }
             else
             {
-                // Compare the new step count to the initial average
                 double percentage = ((double)stepCount / _initialAverageSteps) * 100;
-                percentage = Math.Min(percentage, 100); // Ensure it doesn't exceed 100%
+                percentage = Math.Min(percentage, 100);
 
                 Dispatcher.Invoke(() =>
                 {
-                    // Update ProgressBar value
                     FatigueProgressBar.Value = percentage;
-
-                    // Update Fatigue Level Text
                     UpdateFatigueLevelText(percentage);
                 });
             }
@@ -214,12 +280,7 @@ namespace WpfFatigueMK2
 
         private int CalculateAverageSteps()
         {
-            int sum = 0;
-            foreach (int steps in _stepCounts)
-            {
-                sum += steps;
-            }
-            return sum / _stepCounts.Count;
+            return _stepCounts.Count > 0 ? _stepCounts.Sum() / _stepCounts.Count : 0;
         }
 
         private void UpdateFatigueLevelText(double percentage)
@@ -249,16 +310,22 @@ namespace WpfFatigueMK2
                     return;
                 }
 
-                int avgSteps = CalculateAverageSteps(); // You must calculate this first
-                int playerId = 4;  //Hardcoded values for now
-                string position = "7"; //Hardcoded position for now
+                if (_assignedPlayers.TryGetValue(_trackedPlayerSlot, out string playerName))
+                {
+                    int playerId = await _dbHelper.GetPlayerIdByNameAsync(playerName);
+                    string position = _trackedPlayerSlot.ToString();
+                    int avgSteps = CalculateAverageSteps();
 
-                // Show this before inserting into the database
-                MessageBox.Show($"Saving match for PlayerID={playerId}, Position={position}, AvgSteps={avgSteps}");
+                    MessageBox.Show($"Saving match for PlayerID={playerId}, Position={position}, AvgSteps={avgSteps}");
 
-                await _dbHelper.AddMatchAsync(playerId, position, avgSteps);
-                Logger.Info($"Match saved: PlayerID={playerId}, Position={position}, AvgSteps={avgSteps}");
-                await _dbHelper.UpdatePlayerAverageStepsAsync(playerId);
+                    await _dbHelper.AddMatchAsync(playerId, position, avgSteps);
+                    Logger.Info($"Match saved: PlayerID={playerId}, Position={position}, AvgSteps={avgSteps}");
+                    await _dbHelper.UpdatePlayerAverageStepsAsync(playerId);
+                }
+                else
+                {
+                    Logger.Warn("No player assigned to tracked slot.");
+                }
             }
             catch (Exception ex)
             {
@@ -267,11 +334,22 @@ namespace WpfFatigueMK2
             }
         }
 
-        private async void Window_Closing(object sender, System.ComponentModel.CancelEventArgs e)
+        private async void EndMatchButton_Click(object sender, RoutedEventArgs e)
         {
+            _matchStarted = false;
+            EndMatchButton.IsEnabled = false;
+            StartMatchButton.IsEnabled = true;
 
             await SaveSessionToDatabase();
 
+            MessageBox.Show("Match ended and data saved.", "End Match", MessageBoxButton.OK, MessageBoxImage.Information);
+        }
+
+
+
+        private async void Window_Closing(object sender, System.ComponentModel.CancelEventArgs e)
+        {
+            await SaveSessionToDatabase();
 
             if (_serialPort != null && _serialPort.IsOpen)
             {
@@ -280,5 +358,13 @@ namespace WpfFatigueMK2
             }
         }
     }
-}
 
+
+    public class PlayerSlot
+    {
+        public int SlotNumber { get; set; }
+        public string? PlayerName { get; set; }
+        public Button JerseyButton { get; set; }
+        public StackPanel StackPanel { get; set; } // NEW
+    }
+}
