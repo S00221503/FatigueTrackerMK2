@@ -107,7 +107,7 @@ namespace WpfFatigueMK2
                     SlotNumber = i,
                     PlayerName = null,
                     JerseyButton = btn,
-                    StackPanel = stack // ✅ Store this for later access
+                    StackPanel = stack 
                 });
                 btn.MouseDoubleClick += JerseyButton_MouseDoubleClick;
             }

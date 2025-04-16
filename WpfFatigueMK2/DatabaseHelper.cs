@@ -213,4 +213,70 @@ public class DatabaseHelper
 
         return players;
     }
+
+    //Coach Screen Code
+    public async Task<List<(int TeamID, string TeamName)>> GetAllTeamsAsync()
+    {
+        var teams = new List<(int, string)>();
+        const string query = "SELECT TeamID, TeamName FROM Teams";
+
+        using var conn = new SqlConnection(_connectionString);
+        using var cmd = new SqlCommand(query, conn);
+        await conn.OpenAsync();
+
+        using var reader = await cmd.ExecuteReaderAsync();
+        while (await reader.ReadAsync())
+        {
+            teams.Add((reader.GetInt32(0), reader.GetString(1)));
+        }
+
+        return teams;
+    }
+
+    public async Task<List<string>> GetPlayersByTeamIdAsync(int teamId)
+    {
+        var players = new List<string>();
+        const string query = "SELECT Name FROM Players WHERE TeamID = @TeamID";
+
+        using var conn = new SqlConnection(_connectionString);
+        using var cmd = new SqlCommand(query, conn);
+        cmd.Parameters.AddWithValue("@TeamID", teamId);
+        await conn.OpenAsync();
+
+        using var reader = await cmd.ExecuteReaderAsync();
+        while (await reader.ReadAsync())
+        {
+            players.Add(reader.GetString(0));
+        }
+
+        return players;
+    }
+
+    public async Task AddPlayerAsync(int teamId, string name)
+    {
+        const string query = "INSERT INTO Players (TeamID, Name, AvgStepsPerGame) VALUES (@TeamID, @Name, 0)";
+
+        using var conn = new SqlConnection(_connectionString);
+        using var cmd = new SqlCommand(query, conn);
+        cmd.Parameters.AddWithValue("@TeamID", teamId);
+        cmd.Parameters.AddWithValue("@Name", name);
+
+        await conn.OpenAsync();
+        await cmd.ExecuteNonQueryAsync();
+    }
+
+    public async Task RemovePlayerByNameAsync(string name)
+    {
+        const string query = "DELETE FROM Players WHERE Name = @Name";
+
+        using var conn = new SqlConnection(_connectionString);
+        using var cmd = new SqlCommand(query, conn);
+        cmd.Parameters.AddWithValue("@Name", name);
+
+        await conn.OpenAsync();
+        await cmd.ExecuteNonQueryAsync();
+    }
+
+
+
 }
