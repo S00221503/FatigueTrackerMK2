@@ -13,6 +13,7 @@ using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using System.Collections.ObjectModel;
 using System.Windows.Threading;
+using System.Text.Json;
 
 namespace WpfFatigueMK2
 {
@@ -41,6 +42,9 @@ namespace WpfFatigueMK2
             string connStr = "Server=tcp:myplayerserver.database.windows.net,1433;Initial Catalog=PlayerTracker;Persist Security Info=False;User ID=AdamGleeson;Password=Tyrone19;MultipleActiveResultSets=False;Encrypt=True;TrustServerCertificate=False;Connection Timeout=30;";
             _dbHelper = new DatabaseHelper(connStr);
             LoadWeather();
+            TrackingSlotListBox.ItemsSource = Enumerable.Range(1, 15);
+            TrackingSlotListBox.SelectedIndex = 0; // Optional: default to slot 1
+
 
             _ = LoadSubstitutesListAsync();
             InitializeJerseyGrid();
@@ -67,6 +71,16 @@ namespace WpfFatigueMK2
             }
         }
 
+        private void TrackingSlotListBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        {
+            if (TrackingSlotListBox.SelectedItem is int selectedSlot)
+            {
+                _trackedPlayerSlot = selectedSlot;
+                Logger.Info($"Tracking player in slot: {_trackedPlayerSlot}");
+            }
+        }
+
+
         private void InitializeJerseyGrid()
         {
             for (int i = 1; i <= 15; i++)
@@ -84,8 +98,8 @@ namespace WpfFatigueMK2
                 stack.Children.Add(new Image
                 {
                     Source = new BitmapImage(new Uri("pack://application:,,,/Images/jersey.jpg")),
-                    Width = 80,
-                    Height = 80
+                    Width = 65,
+                    Height = 65
                 });
 
                 var btn = new Button
@@ -114,9 +128,12 @@ namespace WpfFatigueMK2
 
         private async void LoadWeather()
         {
+            string? city = await GetCityFromIPAsync();
+            city ??= "Dublin"; // fallback if IP lookup fails
+
             try
             {
-                var forecast = await WeatherService.GetForecastAsync("Claremorris");
+                var forecast = await WeatherService.GetForecastAsync(city);
 
                 if (forecast?.data?.weather?.Count > 0)
                 {
@@ -125,25 +142,20 @@ namespace WpfFatigueMK2
 
                     if (firstHour != null)
                     {
-                        string temp = firstHour.tempC;
+                        string? temp = firstHour.tempC;
                         string description = firstHour.weatherDesc?.FirstOrDefault()?.value ?? "No description";
 
-                        WeatherTextBlock.Text = $"Weather: {temp}°C - {description}";
-                        Logger.Info($"Weather loaded: {temp}°C - {description}");
+                        WeatherTextBlock.Text = $"{temp}°C - {description}";
                     }
-                }
-                else
-                {
-                    WeatherTextBlock.Text = "Weather data unavailable.";
-                    Logger.Warn("Weather data was empty.");
                 }
             }
             catch (Exception ex)
             {
                 WeatherTextBlock.Text = "Failed to load weather.";
-                Logger.Error(ex, "Error while loading weather.");
+                Logger.Error(ex, "Error loading weather with auto-location.");
             }
         }
+
 
 
         private void JerseyButton_MouseDoubleClick(object sender, MouseButtonEventArgs e)
@@ -191,7 +203,6 @@ namespace WpfFatigueMK2
 
                     _substitutePlayers.Remove(playerName);
 
-                    MessageBox.Show($"{playerName} assigned to position {emptySlot.SlotNumber}");
                 }
             }
         }
@@ -295,7 +306,6 @@ namespace WpfFatigueMK2
             if (percentage <= 25)
             {
                 FatigueLevelText.Text = "Fatigue Level: Critical (Player should be subbed)";
-                MessageBox.Show("Player should be subbed!", "Fatigue Alert", MessageBoxButton.OK, MessageBoxImage.Warning);
             }
             else if (percentage <= 50)
             {
@@ -307,6 +317,28 @@ namespace WpfFatigueMK2
             }
         }
 
+        //Get users location based on their IP
+        public static async Task<string?> GetCityFromIPAsync()
+        {
+            try
+            {
+                using var client = new HttpClient();
+                var response = await client.GetStringAsync("http://ip-api.com/json/");
+                var json = JsonSerializer.Deserialize<GeoInfo>(response);
+                return json?.city;
+            }
+            catch
+            {
+                return null;
+            }
+        }
+
+        public class GeoInfo
+        {
+            public string? city { get; set; }
+        }
+
+
         private async Task SaveSessionToDatabase()
         {
             try
@@ -317,7 +349,7 @@ namespace WpfFatigueMK2
                     return;
                 }
 
-                if (_assignedPlayers.TryGetValue(_trackedPlayerSlot, out string playerName))
+                if (_assignedPlayers.TryGetValue(_trackedPlayerSlot, out string? playerName))
                 {
                     int playerId = await _dbHelper.GetPlayerIdByNameAsync(playerName);
                     string position = _trackedPlayerSlot.ToString();

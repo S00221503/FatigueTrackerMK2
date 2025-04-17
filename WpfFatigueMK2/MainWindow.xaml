@@ -5,28 +5,27 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:WpfFatigueMK2"
         mc:Ignorable="d"
-        Title="MainWindow" Height="600" Width="1000"
+        Title="Fatigue Tracker"
+        Height="600" Width="1000"
+        FontFamily="Segoe UI"
+        FontSize="14"
+        Background="#E8ECEF"
         Closing="Window_Closing">
-    <Border BorderBrush="Black" BorderThickness="20,20,0,0">
+
+    <Border Background="#E8ECEF" BorderBrush="Black" BorderThickness="20,20,0,0">
         <Grid>
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="Auto" />
-                <!-- Left: Substitutes -->
                 <ColumnDefinition Width="*" />
-                <!-- Middle: Players grid -->
                 <ColumnDefinition Width="Auto" />
-                <!-- Right: Weather -->
             </Grid.ColumnDefinitions>
             <Grid.RowDefinitions>
                 <RowDefinition Height="Auto" />
-                <!-- Top: Weather -->
                 <RowDefinition Height="*" />
-                <!-- Middle: Players -->
                 <RowDefinition Height="Auto" />
-                <!-- Bottom: Fatigue info -->
             </Grid.RowDefinitions>
 
-            <!-- Weather Conditions TextBox (Top-Right) -->
+            <!-- Weather TextBox (Top-Right) -->
             <TextBox x:Name="WeatherTextBlock"
                      Grid.Column="2"
                      HorizontalAlignment="Right"
@@ -36,10 +35,11 @@
                      Text="Loading..."
                      IsReadOnly="True"
                      TextAlignment="Center"
-                     Background="Transparent"
-                     BorderThickness="0" />
+                     Background="#F0F0F0"
+                     BorderBrush="Gray"
+                     BorderThickness="1" />
 
-            <!-- Substitutes ListBox with Label (Left) -->
+            <!-- Substitutes ListBox with Label (Left Center Only) -->
             <StackPanel Grid.Column="0" Grid.Row="1" Margin="10">
                 <TextBlock Text="Substitutes"
                            FontSize="14"
@@ -47,24 +47,47 @@
                            Margin="0,0,0,5" />
                 <ListBox x:Name="SubstitutesListBox"
                          Width="150"
-                         Height="400" />
+                         VerticalAlignment="Top"
+                         BorderBrush="Gray"
+                         BorderThickness="1"/>
             </StackPanel>
 
             <!-- Jersey Buttons Grid (Center) -->
-            <UniformGrid x:Name="PlayerGrid"
-                         Grid.Column="1"
-                         Grid.Row="1"
-                         Rows="3"
-                         Columns="5"
-                         HorizontalAlignment="Center"
-                         VerticalAlignment="Center"
-                         Margin="10" />
+            <Border Grid.Column="1"
+                    Grid.Row="1"
+                    Background="#2E7D32"
+                    BorderBrush="DarkGreen"
+                    BorderThickness="1"
+                    Margin="10">
+                <UniformGrid x:Name="PlayerGrid"
+                             Rows="3"
+                             Columns="5"
+                             HorizontalAlignment="Center"
+                             VerticalAlignment="Center"
+                             Margin="10"/>
+            </Border>
+
+            <!-- Tracking Slots ListBox (Right, below weather, above buttons) -->
+            <StackPanel Grid.Column="2" Grid.Row="1"
+                        HorizontalAlignment="Right"
+                        VerticalAlignment="Top"
+                        Margin="10">
+                <TextBlock Text="Tracking Slots"
+                           FontWeight="Bold"
+                           Margin="0,0,0,5" />
+                <ListBox x:Name="TrackingSlotListBox"
+                         Width="100"
+                         Height="150"
+                         SelectionChanged="TrackingSlotListBox_SelectionChanged"
+                         BorderBrush="Gray"
+                         BorderThickness="1"/>
+            </StackPanel>
 
             <!-- Fatigue Display (Bottom-Center) -->
             <StackPanel Grid.Column="1" Grid.Row="2" 
                         Orientation="Vertical"
                         HorizontalAlignment="Center"
-                        Margin="10">
+                        Margin="10,0,10,10">
                 <ProgressBar x:Name="FatigueProgressBar"
                              Width="200"
                              Height="20"
@@ -79,22 +102,31 @@
                            Margin="0,5,0,0"
                            HorizontalAlignment="Center" />
             </StackPanel>
-            <Button x:Name="StartMatchButton"
-        Grid.Row="2"
-        Content="Start Match"
-        Width="120"
-        Height="30"
-        Margin="0,7,0,37"
-        Click="StartMatchButton_Click"
-        HorizontalAlignment="Center" />
 
-            <Button x:Name="EndMatchButton"
-        Content="End Match"
-        Width="100"
-        Height="30"
-        Margin="50,7,50,37"
-        Click="EndMatchButton_Click" Grid.Column="2" Grid.Row="2" />
+            <!-- Buttons on the Right -->
+            <StackPanel Grid.Column="2" Grid.Row="2" 
+                        HorizontalAlignment="Right"
+                        VerticalAlignment="Bottom"
+                        Margin="10">
+                <Button x:Name="StartMatchButton"
+                        Content="Start Match"
+                        Width="100"
+                        Height="30"
+                        Margin="0,0,0,5"
+                        Click="StartMatchButton_Click"
+                        Background="#1976D2"
+                        Foreground="White"
+                        BorderBrush="DarkBlue" />
 
+                <Button x:Name="EndMatchButton"
+                        Content="End Match"
+                        Width="100"
+                        Height="30"
+                        Click="EndMatchButton_Click"
+                        Background="#D32F2F"
+                        Foreground="White"
+                        BorderBrush="DarkRed" />
+            </StackPanel>
         </Grid>
     </Border>
 </Window>
