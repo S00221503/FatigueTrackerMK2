@@ -1,24 +1,60 @@
 ﻿using System;
 
-public class WeatherResult
+public class WorldWeatherResult
 {
-    public List<Forecast> list { get; set; }
+    public WeatherData data { get; set; }
 }
 
-public class Forecast
+public class WeatherData
 {
-    public Main main { get; set; }
-    public List<Weather> weather { get; set; }
+    public List<Request>? request { get; set; }
+    public List<CurrentCondition>? current_condition { get; set; }
+    public List<WeatherDay>? weather { get; set; }
 }
 
-public class Main
+public class Request
 {
-    public double temp { get; set; }
+    public string? type { get; set; }
+    public string? query { get; set; }
 }
 
-public class Weather
+public class CurrentCondition
 {
-    public string main { get; set; }
-    public string description { get; set; }
+    public string? temp_C { get; set; }
+    public string? temp_F { get; set; }
+    public List<WeatherDescription>? weatherDesc { get; set; }
+    public List<WeatherIconUrl>? weatherIconUrl { get; set; }
+    public string? humidity { get; set; }
+    public string? windspeedKmph { get; set; }
+    public string? precipMM { get; set; }
 }
+
+public class WeatherDay
+{
+    public string? date { get; set; }
+    public List<Hourly>? hourly { get; set; }
+}
+
+public class Hourly
+{
+    public string? time { get; set; }
+    public string? tempC { get; set; }
+    public string? tempF { get; set; }
+    public List<WeatherDescription>? weatherDesc { get; set; }
+    public List<WeatherIconUrl>? weatherIconUrl { get; set; }
+    public string? humidity { get; set; }
+    public string? windspeedKmph { get; set; }
+    public string? precipMM { get; set; }
+}
+
+public class WeatherDescription
+{
+    public string? value { get; set; }
+}
+
+public class WeatherIconUrl
+{
+    public string? value { get; set; }
+}
+
 

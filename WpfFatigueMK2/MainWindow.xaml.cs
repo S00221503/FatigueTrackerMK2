@@ -2,8 +2,8 @@
 using NLog;
 using System;
 using System.Collections.Generic;
-using System.IO.Ports;
 using System.Linq;
+using System.Net.Http;
 using System.Text;
 using System.Threading.Tasks;
 using System.Windows;
@@ -12,14 +12,15 @@ using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using System.Collections.ObjectModel;
-
+using System.Windows.Threading;
 
 namespace WpfFatigueMK2
 {
     public partial class MainWindow : Window
     {
         private static readonly Logger Logger = LogManager.GetCurrentClassLogger();
-        private SerialPort _serialPort;
+        private static readonly HttpClient _httpClient = new HttpClient();
+        private DispatcherTimer _pollTimer;
         private Queue<int> _stepCounts = new();
         private DateTime _lastUpdate = DateTime.Now;
         private const int MaxSteps = 200;
@@ -28,12 +29,10 @@ namespace WpfFatigueMK2
         private DatabaseHelper _dbHelper;
         private bool _matchStarted = false;
 
-
         private List<PlayerSlot> _playerSlots = new();
         private Dictionary<int, string> _assignedPlayers = new();
         private int _trackedPlayerSlot = 1; // Arduino tracks slot 1
         private ObservableCollection<string> _substitutePlayers = new();
-
 
         public MainWindow()
         {
@@ -41,13 +40,16 @@ namespace WpfFatigueMK2
             Logger.Info("Application started.");
             string connStr = "Server=tcp:myplayerserver.database.windows.net,1433;Initial Catalog=PlayerTracker;Persist Security Info=False;User ID=AdamGleeson;Password=Tyrone19;MultipleActiveResultSets=False;Encrypt=True;TrustServerCertificate=False;Connection Timeout=30;";
             _dbHelper = new DatabaseHelper(connStr);
-            InitializeSerialPort();
             LoadWeather();
 
             _ = LoadSubstitutesListAsync();
             InitializeJerseyGrid();
 
             SubstitutesListBox.MouseDoubleClick += SubstitutesListBox_MouseDoubleClick;
+
+            _pollTimer = new DispatcherTimer();
+            _pollTimer.Interval = TimeSpan.FromSeconds(5);
+            _pollTimer.Tick += async (s, e) => await PollStepDataFromYunAsync();
         }
 
         private async Task LoadSubstitutesListAsync()
@@ -65,14 +67,12 @@ namespace WpfFatigueMK2
             }
         }
 
-
         private void InitializeJerseyGrid()
         {
             for (int i = 1; i <= 15; i++)
             {
                 var stack = new StackPanel { Orientation = Orientation.Vertical };
 
-                // Jersey number
                 stack.Children.Add(new TextBlock
                 {
                     Text = i.ToString(),
@@ -81,7 +81,6 @@ namespace WpfFatigueMK2
                     Margin = new Thickness(0, 0, 0, 5)
                 });
 
-                // Jersey image
                 stack.Children.Add(new Image
                 {
                     Source = new BitmapImage(new Uri("pack://application:,,,/Images/jersey.jpg")),
@@ -107,11 +106,45 @@ namespace WpfFatigueMK2
                     SlotNumber = i,
                     PlayerName = null,
                     JerseyButton = btn,
-                    StackPanel = stack 
+                    StackPanel = stack
                 });
                 btn.MouseDoubleClick += JerseyButton_MouseDoubleClick;
             }
         }
+
+        private async void LoadWeather()
+        {
+            try
+            {
+                var forecast = await WeatherService.GetForecastAsync("Claremorris");
+
+                if (forecast?.data?.weather?.Count > 0)
+                {
+                    var firstDay = forecast.data.weather[0];
+                    var firstHour = firstDay.hourly?.FirstOrDefault();
+
+                    if (firstHour != null)
+                    {
+                        string temp = firstHour.tempC;
+                        string description = firstHour.weatherDesc?.FirstOrDefault()?.value ?? "No description";
+
+                        WeatherTextBlock.Text = $"Weather: {temp}°C - {description}";
+                        Logger.Info($"Weather loaded: {temp}°C - {description}");
+                    }
+                }
+                else
+                {
+                    WeatherTextBlock.Text = "Weather data unavailable.";
+                    Logger.Warn("Weather data was empty.");
+                }
+            }
+            catch (Exception ex)
+            {
+                WeatherTextBlock.Text = "Failed to load weather.";
+                Logger.Error(ex, "Error while loading weather.");
+            }
+        }
+
 
         private void JerseyButton_MouseDoubleClick(object sender, MouseButtonEventArgs e)
         {
@@ -130,18 +163,13 @@ namespace WpfFatigueMK2
             }
         }
 
-
-
-
         private void StartMatchButton_Click(object sender, RoutedEventArgs e)
         {
             _matchStarted = true;
-            StartMatchButton.IsEnabled = false; // optional: disable the button after clicking
+            _pollTimer.Start();
+            StartMatchButton.IsEnabled = false;
             MessageBox.Show("Match started! Fatigue tracking is now active.");
         }
-
-
-
 
         private void SubstitutesListBox_MouseDoubleClick(object sender, MouseButtonEventArgs e)
         {
@@ -153,7 +181,6 @@ namespace WpfFatigueMK2
                     emptySlot.PlayerName = playerName;
                     _assignedPlayers[emptySlot.SlotNumber] = playerName;
 
-                    // Add name to jersey UI
                     emptySlot.StackPanel.Children.Add(new TextBlock
                     {
                         Text = playerName,
@@ -162,7 +189,6 @@ namespace WpfFatigueMK2
                         HorizontalAlignment = HorizontalAlignment.Center
                     });
 
-                    // ✅ Remove from the ObservableCollection, NOT from Items directly
                     _substitutePlayers.Remove(playerName);
 
                     MessageBox.Show($"{playerName} assigned to position {emptySlot.SlotNumber}");
@@ -170,81 +196,58 @@ namespace WpfFatigueMK2
             }
         }
 
-
-
-        private async void LoadWeather()
+        private async Task PollStepDataFromYunAsync()
         {
-            var weather = await WeatherService.GetForecastAsync("Dublin,IE");
+            Logger.Info("Polling Yun for step data...");
 
-            if (weather != null && weather.list != null && weather.list.Count > 0)
+            if (!_matchStarted)
             {
-                var first = weather.list[0];
-                string condition = first.weather[0].main;
-                string description = first.weather[0].description;
-                double temp = first.main.temp;
-
-                WeatherConditionTextBox.Text = $"{condition} ({description}), {temp}°C";
+                Logger.Info("Match not started, skipping poll.");
+                return;
             }
-            else
-            {
-                WeatherConditionTextBox.Text = "N/A";
-            }
-        }
-
-        private void InitializeSerialPort()
-        {
-            try
-            {
-                _serialPort = new SerialPort("COM5", 9600)
-                {
-                    DtrEnable = true,
-                    RtsEnable = true,
-                    ReadTimeout = 2000,
-                    WriteTimeout = 500
-                };
-
-                _serialPort.DataReceived += SerialPort_DataReceived;
-                _serialPort.Open();
-                System.Threading.Thread.Sleep(2000);
-                _serialPort.DiscardInBuffer();
-
-                MessageBox.Show("Connected to Arduino successfully!");
-            }
-            catch (Exception ex)
-            {
-                MessageBox.Show($"Error initializing serial port: {ex.Message}");
-            }
-        }
-
-        private void SerialPort_DataReceived(object sender, SerialDataReceivedEventArgs e)
-        {
-            if (!_matchStarted) return; // 🔒 Prevent tracking before match starts
 
             try
             {
-                string data = _serialPort.ReadLine();
-                if (data.StartsWith("Steps in last 5 seconds:"))
+                string response = await _httpClient.GetStringAsync("http://192.168.240.1/arduino/data");
+                Logger.Info("Raw response received from Yun:\n" + response);
+
+                // Extract the last non-empty line
+                string? line = response.Split('\n')
+                                      .Select(l => l.Trim())
+                                      .Where(l => !string.IsNullOrWhiteSpace(l))
+                                      .LastOrDefault();
+
+                Logger.Info("Extracted line: " + line);
+
+                if (line != null && line.StartsWith("Steps in last 5 seconds:"))
                 {
-                    string stepCountStr = data.Replace("Steps in last 5 seconds:", "").Trim();
+                    string stepCountStr = line.Replace("Steps in last 5 seconds:", "").Trim();
                     if (int.TryParse(stepCountStr, out int stepCount))
                     {
+                        Logger.Info($"Parsed step count: {stepCount}");
                         UpdateFatigueLevel(stepCount);
                     }
+                    else
+                    {
+                        Logger.Warn("Failed to parse step count from extracted line.");
+                    }
                 }
-            }
-            catch (TimeoutException)
-            {
-                Console.WriteLine("Timeout.");
+                else
+                {
+                    Logger.Warn("Unexpected or missing data line: " + line);
+                }
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Error reading serial data: {ex.Message}");
+                Logger.Error(ex, "Error while polling step data from Yun.");
             }
         }
 
 
         private void UpdateFatigueLevel(int stepCount)
         {
+            Logger.Info($"Updating fatigue level with step count: {stepCount}");
+
             if (!_initialized)
             {
                 _stepCounts.Enqueue(stepCount);
@@ -263,6 +266,8 @@ namespace WpfFatigueMK2
                         FatigueProgressBar.Value = 100;
                         FatigueLevelText.Text = "Fatigue Level: Normal (Player is fine)";
                     });
+
+                    Logger.Info($"Initialized with average steps: {_initialAverageSteps}");
                 }
             }
             else
@@ -275,6 +280,8 @@ namespace WpfFatigueMK2
                     FatigueProgressBar.Value = percentage;
                     UpdateFatigueLevelText(percentage);
                 });
+
+                Logger.Info($"Fatigue level updated. Percentage: {percentage}");
             }
         }
 
@@ -337,6 +344,7 @@ namespace WpfFatigueMK2
         private async void EndMatchButton_Click(object sender, RoutedEventArgs e)
         {
             _matchStarted = false;
+            _pollTimer.Stop();
             EndMatchButton.IsEnabled = false;
             StartMatchButton.IsEnabled = true;
 
@@ -345,26 +353,17 @@ namespace WpfFatigueMK2
             MessageBox.Show("Match ended and data saved.", "End Match", MessageBoxButton.OK, MessageBoxImage.Information);
         }
 
-
-
         private async void Window_Closing(object sender, System.ComponentModel.CancelEventArgs e)
         {
             await SaveSessionToDatabase();
-
-            if (_serialPort != null && _serialPort.IsOpen)
-            {
-                _serialPort.Close();
-                Console.WriteLine("Serial port closed.");
-            }
         }
     }
-
 
     public class PlayerSlot
     {
         public int SlotNumber { get; set; }
         public string? PlayerName { get; set; }
         public Button JerseyButton { get; set; }
-        public StackPanel StackPanel { get; set; } // NEW
+        public StackPanel StackPanel { get; set; }
     }
-}
+} 

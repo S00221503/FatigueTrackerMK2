@@ -27,7 +27,7 @@
             </Grid.RowDefinitions>
 
             <!-- Weather Conditions TextBox (Top-Right) -->
-            <TextBox x:Name="WeatherConditionTextBox"
+            <TextBox x:Name="WeatherTextBlock"
                      Grid.Column="2"
                      HorizontalAlignment="Right"
                      VerticalAlignment="Top"
