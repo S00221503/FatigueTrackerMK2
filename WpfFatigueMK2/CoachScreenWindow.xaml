@@ -2,4 +2,17 @@
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         Title="CoachScreenWindow" Height="200" Width="400">
+    <StackPanel Margin="20">
+        <Label x:Name="CoachNameLabel"
+               FontSize="16"
+               FontWeight="Bold"
+               Content="Coach: " />
+
+        <TextBlock Text="Teams:"
+                   FontWeight="SemiBold"
+                   Margin="0,10,0,5"/>
+
+        <ListBox x:Name="TeamsListBox" />
+    </StackPanel>
+
 </Window>

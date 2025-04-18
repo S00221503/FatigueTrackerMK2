@@ -25,6 +25,19 @@
                 <RowDefinition Height="Auto" />
             </Grid.RowDefinitions>
 
+
+            <Button x:Name="CoachOptionsButton"
+Content="Coach Options"
+Width="120"
+Height="30"
+HorizontalAlignment="Left"
+VerticalAlignment="Top"
+Margin="10"
+Click="CoachOptionsButton_Click"
+Background="#455A64"
+Foreground="White"
+BorderBrush="Black"/>
+
             <!-- Weather TextBox (Top-Right) -->
             <TextBox x:Name="WeatherTextBlock"
                      Grid.Column="2"

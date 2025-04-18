@@ -16,6 +16,7 @@ public class DatabaseHelper
     {
         using var connection = new SqlConnection(_connectionString);
         await connection.OpenAsync();
+        await CreateManagersTableAsync();
 
         var createTeams = @"
             IF NOT EXISTS (SELECT * FROM sysobjects WHERE name='Teams' AND xtype='U')
@@ -61,6 +62,25 @@ public class DatabaseHelper
         await cmd.ExecuteNonQueryAsync();
     }
 
+    public async Task CreateManagersTableAsync()
+    {
+        using var connection = new SqlConnection(_connectionString);
+        await connection.OpenAsync();
+
+        var createManagersTable = @"
+    IF NOT EXISTS (SELECT * FROM sysobjects WHERE name='Managers' AND xtype='U')
+    CREATE TABLE Managers (
+        ManagerId INT PRIMARY KEY IDENTITY(1,1),
+        Name NVARCHAR(100) NOT NULL,
+        Username NVARCHAR(100) NOT NULL UNIQUE,
+        Password NVARCHAR(255) NOT NULL
+    );";
+
+        using var cmd = new SqlCommand(createManagersTable, connection);
+        await cmd.ExecuteNonQueryAsync();
+    }
+
+
     public async Task<List<string>> GetPlayersByTeamAsync(string teamName)
     {
         var players = new List<string>();
@@ -84,6 +104,27 @@ public class DatabaseHelper
         }
 
         return players;
+    }
+
+
+    public async Task<List<string>> GetTeamsByManagerIdAsync(int managerId)
+    {
+        var teamNames = new List<string>();
+
+        using var connection = new SqlConnection(_connectionString);
+        await connection.OpenAsync();
+
+        string query = "SELECT TeamName FROM Teams WHERE ManagerId = @managerId";
+        using var cmd = new SqlCommand(query, connection);
+        cmd.Parameters.AddWithValue("@managerId", managerId);
+
+        using var reader = await cmd.ExecuteReaderAsync();
+        while (await reader.ReadAsync())
+        {
+            teamNames.Add(reader.GetString(0));
+        }
+
+        return teamNames;
     }
 
 

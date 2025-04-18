@@ -1,21 +1,41 @@
 ﻿<Window x:Class="WpfFatigueMK2.PlayerDetailsWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        Title="Player Details" Height="200" Width="400">
-    <Grid Margin="20">
-        <Grid.RowDefinitions>
-            <RowDefinition Height="Auto"/>
-            <RowDefinition Height="Auto"/>
-            <RowDefinition Height="Auto"/>
-        </Grid.RowDefinitions>
+        Title="Player Details"
+        Height="230"
+        Width="400"
+        Background="#F2F4F6"
+        FontFamily="Segoe UI"
+        FontSize="14"
+        ResizeMode="NoResize"
+        WindowStartupLocation="CenterOwner">
 
-        <TextBlock Text="Player Name:" FontWeight="Bold"/>
-        <TextBlock x:Name="PlayerNameTextBlock" Grid.Row="0" Margin="120,0,0,0"/>
+    <Border Background="White"
+            BorderBrush="Gray"
+            BorderThickness="1"
+            Margin="20">
+        <Grid Margin="15">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
+            </Grid.RowDefinitions>
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="150"/>
+                <ColumnDefinition Width="*"/>
+            </Grid.ColumnDefinitions>
 
-        <TextBlock Text="Player Number:" Grid.Row="1" FontWeight="Bold"/>
-        <TextBlock x:Name="PlayerSlotTextBlock" Grid.Row="1" Margin="120,0,0,0"/>
+            <!-- Player Name -->
+            <TextBlock Text="Player Name:" FontWeight="Bold" Grid.Row="0" Grid.Column="0" VerticalAlignment="Center" Margin="0,0,10,10"/>
+            <TextBlock x:Name="PlayerNameTextBlock" Grid.Row="0" Grid.Column="1" VerticalAlignment="Center" Margin="0,0,0,10"/>
 
-        <TextBlock Text="Average Steps/Game:" Grid.Row="2" FontWeight="Bold"/>
-        <TextBlock x:Name="PlayerAvgStepsTextBlock" Grid.Row="2" Margin="120,0,0,0"/>
-    </Grid>
+            <!-- Player Number -->
+            <TextBlock Text="Player Number:" FontWeight="Bold" Grid.Row="1" Grid.Column="0" VerticalAlignment="Center" Margin="0,0,10,10"/>
+            <TextBlock x:Name="PlayerSlotTextBlock" Grid.Row="1" Grid.Column="1" VerticalAlignment="Center" Margin="0,0,0,10"/>
+
+            <!-- Average Steps/Game -->
+            <TextBlock Text="Average Steps/Game:" FontWeight="Bold" Grid.Row="2" Grid.Column="0" VerticalAlignment="Center"/>
+            <TextBlock x:Name="PlayerAvgStepsTextBlock" Grid.Row="2" Grid.Column="1" VerticalAlignment="Center"/>
+        </Grid>
+    </Border>
 </Window>

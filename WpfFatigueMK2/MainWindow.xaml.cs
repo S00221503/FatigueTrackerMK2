@@ -29,13 +29,13 @@ namespace WpfFatigueMK2
         private int _initialAverageSteps = 0;
         private DatabaseHelper _dbHelper;
         private bool _matchStarted = false;
-
+        private int _managerId;
         private List<PlayerSlot> _playerSlots = new();
         private Dictionary<int, string> _assignedPlayers = new();
         private int _trackedPlayerSlot = 1; // Arduino tracks slot 1
         private ObservableCollection<string> _substitutePlayers = new();
 
-        public MainWindow()
+        public MainWindow(int managerId)
         {
             InitializeComponent();
             Logger.Info("Application started.");
@@ -44,9 +44,10 @@ namespace WpfFatigueMK2
             LoadWeather();
             TrackingSlotListBox.ItemsSource = Enumerable.Range(1, 15);
             TrackingSlotListBox.SelectedIndex = 0; // Optional: default to slot 1
+            _managerId = managerId;
 
 
-            _ = LoadSubstitutesListAsync();
+            _ = LoadSubstitutesListAsync(_managerId);
             InitializeJerseyGrid();
 
             SubstitutesListBox.MouseDoubleClick += SubstitutesListBox_MouseDoubleClick;
@@ -56,12 +57,22 @@ namespace WpfFatigueMK2
             _pollTimer.Tick += async (s, e) => await PollStepDataFromYunAsync();
         }
 
-        private async Task LoadSubstitutesListAsync()
+        private async Task LoadSubstitutesListAsync(int managerId)
         {
             try
             {
-                var players = await _dbHelper.GetPlayersByTeamAsync("Claremorris");
-                _substitutePlayers = new ObservableCollection<string>(players);
+                // Get the team(s) assigned to the manager
+                var teamNames = await _dbHelper.GetTeamsByManagerIdAsync(managerId);
+
+                var allPlayers = new List<string>();
+
+                foreach (var teamName in teamNames)
+                {
+                    var players = await _dbHelper.GetPlayersByTeamAsync(teamName);
+                    allPlayers.AddRange(players);
+                }
+
+                _substitutePlayers = new ObservableCollection<string>(allPlayers);
                 SubstitutesListBox.ItemsSource = _substitutePlayers;
             }
             catch (Exception ex)
@@ -71,6 +82,7 @@ namespace WpfFatigueMK2
             }
         }
 
+
         private void TrackingSlotListBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
         {
             if (TrackingSlotListBox.SelectedItem is int selectedSlot)
@@ -78,6 +90,13 @@ namespace WpfFatigueMK2
                 _trackedPlayerSlot = selectedSlot;
                 Logger.Info($"Tracking player in slot: {_trackedPlayerSlot}");
             }
+        }
+
+
+        private void CoachOptionsButton_Click(object sender, RoutedEventArgs e)
+        {
+            var coachWindow = new CoachScreenWindow(_managerId); // pass managerId if needed
+            coachWindow.Show();
         }
 
 
