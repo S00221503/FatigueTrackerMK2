@@ -43,7 +43,7 @@ namespace WpfFatigueMK2
             _dbHelper = new DatabaseHelper(connStr);
             LoadWeather();
             TrackingSlotListBox.ItemsSource = Enumerable.Range(1, 15);
-            TrackingSlotListBox.SelectedIndex = 0; // Optional: default to slot 1
+            TrackingSlotListBox.SelectedIndex = 0;
             _managerId = managerId;
 
 
